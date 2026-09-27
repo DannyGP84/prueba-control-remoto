@@ -1,0 +1,103 @@
+{
+  "_ayuda": "focus = [x, y] del centro del elemento a resaltar y box = [ancho, alto] del marco, ambos en fracción de la captura (0,0 = esquina superior izquierda; 1,1 = inferior derecha). Si falta el archivo, se dibuja una pantalla provisional.",
+  "screens": [
+    {
+      "file": "01-chat.png",
+      "kind": "chat",
+      "focus": [
+        0.7,
+        0.93
+      ],
+      "box": [
+        0.34,
+        0.062
+      ]
+    },
+    {
+      "file": "02-menu.png",
+      "kind": "menu",
+      "focus": [
+        0.5,
+        0.86
+      ],
+      "box": [
+        0.9,
+        0.058
+      ]
+    },
+    {
+      "file": "03-mas-modelos.png",
+      "kind": "models",
+      "focus": [
+        0.5,
+        0.56
+      ],
+      "box": [
+        0.9,
+        0.058
+      ]
+    },
+    {
+      "file": "04-effort.png",
+      "kind": "effort",
+      "focus": [
+        0.5,
+        0.6
+      ],
+      "box": [
+        0.9,
+        0.058
+      ]
+    },
+    {
+      "file": "05-listo.png",
+      "kind": "done",
+      "focus": [
+        0.7,
+        0.93
+      ],
+      "box": [
+        0.34,
+        0.062
+      ]
+    }
+  ],
+  "intro": {
+    "kicker": "Tutorial rápido",
+    "line1": "Cómo elegir",
+    "line2": "Claude Opus 5.5",
+    "sub": "en la app de Claude · 4 pasos"
+  },
+  "steps": [
+    {
+      "t0": 3,
+      "t1": 7,
+      "title": "Toca el nombre del modelo",
+      "sub": "Está junto al botón de enviar"
+    },
+    {
+      "t0": 7,
+      "t1": 11,
+      "title": "Abre «More models»",
+      "sub": "Ahí aparecen más modelos"
+    },
+    {
+      "t0": 11,
+      "t1": 15,
+      "title": "Elige Claude Opus 5.5",
+      "sub": "Aplica desde la siguiente respuesta"
+    },
+    {
+      "t0": 15,
+      "t1": 18,
+      "title": "Ajusta «Effort»",
+      "sub": "Opcional · Low · Medium · High · Extra high · Max"
+    }
+  ],
+  "outro": {
+    "title": "¡Listo!",
+    "sub": "Ya estás usando Claude Opus 5.5",
+    "note": "Puedes cambiar de modelo en cualquier chat",
+    "source": "Fuente: support.claude.com"
+  }
+}

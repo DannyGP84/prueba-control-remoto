@@ -1,0 +1,21 @@
+{
+  "name": "video-opus-5-5",
+  "private": true,
+  "type": "module",
+  "description": "Animación 3D vertical: cómo elegir Claude Opus 5.5 en la app de Claude",
+  "scripts": {
+    "music": "node music.js",
+    "preview": "node server.js",
+    "stills": "node render.js --stills 1,2.6,4.8,8.2,12.4,16,19",
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/playfair-display": "^5.1.0",
+    "ffmpeg-static": "^5.2.0",
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
