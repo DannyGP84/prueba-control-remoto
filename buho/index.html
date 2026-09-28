@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Búho animado</title>
+<style>
+  html, body { margin: 0; background: #fff; overflow: hidden; }
+  canvas { display: block; width: 1116px; height: 2000px; transform-origin: 0 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1116" height="2000"></canvas>
+<script type="module">
+// Anima la ilustración original deformándola en un shader (respiración, cabeza, mirada, alas),
+// con párpados de trama de puntos y estrellas que centellean. Bucle perfecto de 6 s.
+const LOOP = 6;
+const RENDER = new URLSearchParams(location.search).has('render');
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, antialias: false });
+
+const img = new Image();
+img.src = 'buho.jpg';
+await img.decode();
+
+const vs = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+const fs = `#version 300 es
+precision highp float;
+uniform sampler2D img; uniform vec2 res; uniform float t;
+out vec4 o;
+const float TAU = 6.2831853;
+const vec2 C = vec2(558., 0.);
+
+vec2 rot(vec2 p, vec2 c, float a){ float s = sin(a), k = cos(a); p -= c; return c + vec2(k*p.x - s*p.y, s*p.x + k*p.y); }
+float sm(float a, float b, float x){ return smoothstep(a, b, x); }
+
+// -1 = mira a su derecha, +1 = a su izquierda (en pantalla), con pausas naturales
+float look(float t){ return (sm(.6, 1., t) - sm(2.3, 2.75, t)) - (sm(3.3, 3.7, t) - sm(5.0, 5.45, t)); }
+float blink(float t){
+  float b = 0.;
+  b = max(b, 1. - sm(0., .1, abs(t - 1.75)));
+  b = max(b, 1. - sm(0., .09, abs(t - 4.25)));
+  b = max(b, 1. - sm(0., .09, abs(t - 4.5)));
+  return b;
+}
+// trama de puntos girada 45° (imita la textura de la ilustración); g = cantidad de blanco
+float halftone(vec2 p, float g){
+  vec2 q = rot(p, vec2(0.), .785398);
+  vec2 f = mod(q, 9.) - 4.5;
+  return 1. - sm(g * 5.2 - .6, g * 5.2 + .6, length(f)) ;
+}
+float star(vec2 d, float s){
+  float g = exp(-dot(d, d) / (2. * s * s));
+  float spikes = exp(-abs(d.y) / 1.3) * exp(-abs(d.x) / (s * 3.)) + exp(-abs(d.x) / 1.3) * exp(-abs(d.y) / (s * 3.));
+  return g + spikes * .8;
+}
+
+void main(){
+  vec2 p = vec2(gl_FragCoord.x, res.y - gl_FragCoord.y);   // píxeles de la imagen, y hacia abajo
+  vec2 s = p;
+  // máscaras para no mover el marco de puntos
+  float wX = 1. - sm(460., 520., abs(p.x - C.x));
+  float wTop = sm(70., 150., p.y);
+
+  // 1) respiración: escala con las patas como ancla
+  float br = sin(TAU * t / 3.);
+  float wB = sm(1440., 1300., s.y) * wX * wTop;
+  vec2 anchor = vec2(558., 1420.);
+  s = anchor + (s - anchor) / vec2(1. + .013 * br * wB, 1. + .009 * br * wB);
+
+  // 2) cabeza: se inclina hacia donde mira, con un leve vaivén
+  float lk = look(t);
+  float a = .055 * lk + .012 * sin(TAU * t / 3. + 1.);
+  float wH = sm(900., 730., s.y) * wX * wTop;
+  s = rot(s, vec2(558., 830.), -a * wH);
+  s.y += 5. * br * wH;                         // la cabeza sube y baja al respirar
+
+  // 3) mirada: la cara se desliza un poco hacia el lado
+  vec2 fc = vec2(556., 640.);
+  float wF = 1. - sm(190., 290., length((s - fc) * vec2(1., 1.25)));
+  s.x -= 11. * lk * wF;
+
+  // 4) alas: pequeño sacudón de plumas
+  float flap = sin(TAU * t * 5.) * sm(2.75, 2.95, t) * (1. - sm(3.25, 3.55, t));
+  float wL = sm(340., 240., s.x) * sm(690., 790., s.y) * sm(1340., 1240., s.y);
+  float wR = sm(776., 876., s.x) * sm(690., 790., s.y) * sm(1340., 1240., s.y);
+  s = rot(s, vec2(280., 770.), .035 * flap * wL);
+  s = rot(s, vec2(836., 770.), -.035 * flap * wR);
+
+  vec3 c = texture(img, s / res).rgb;
+
+  // 5) párpados (en coordenadas de la imagen, así siguen a la cabeza)
+  float bl = blink(t);
+  if (bl > 0.) {
+    for (int i = 0; i < 2; i++) {
+      vec2 E = i == 0 ? vec2(409., 616.) : vec2(711., 617.);
+      float r = 72.;
+      vec2 d = s - E;
+      float inside = 1. - sm(r - 2., r + 1., length(d));
+      float edge = -r + 2. * r * bl;
+      float lid = inside * (1. - sm(edge - 1.5, edge + 1.5, d.y));
+      float rim = inside * (1. - sm(0., 5., abs(d.y - edge))) * step(.15, bl);
+      float lidCol = halftone(s, .16 + .1 * sm(-r, r, d.y));
+      c = mix(c, vec3(lidCol), lid);
+      c = mix(c, vec3(max(lidCol, .8 * halftone(s + 3., .45))), rim * .9);
+    }
+  }
+
+  // 6) estrellas de la constelación que centellean
+  vec2 st[10] = vec2[10](vec2(356., 920.), vec2(444., 996.), vec2(480., 1080.), vec2(608., 996.), vec2(660., 956.),
+                         vec2(784., 1032.), vec2(636., 1116.), vec2(612., 1196.), vec2(770., 890.), vec2(430., 886.));
+  float glow = 0.;
+  for (int i = 0; i < 10; i++) {
+    float fi = float(i);
+    float tw = pow(.5 + .5 * sin(TAU * t / LOOP_F * (1. + mod(fi, 3.)) + fi * 2.1), 5.);
+    glow += star(s - st[i], 5.) * tw;
+  }
+  c = mix(c, vec3(1.), clamp(glow, 0., 1.));
+
+  o = vec4(c, 1.);
+}`.replace('LOOP_F', LOOP.toFixed(1));
+
+function sh(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(prog); gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.uniform2f(gl.getUniformLocation(prog, 'res'), 1116, 2000);
+const uT = gl.getUniformLocation(prog, 't');
+
+const draw = t => { gl.uniform1f(uT, t % LOOP); gl.drawArrays(gl.TRIANGLES, 0, 3); };
+
+if (RENDER) {
+  window.renderFrame = async t => { draw(t); await new Promise(r => requestAnimationFrame(r)); };
+  window.__ready = true;
+} else {
+  const fit = () => { const k = Math.min(innerWidth / 1116, innerHeight / 2000); canvas.style.transform = `translate(${(innerWidth - 1116 * k) / 2}px,0) scale(${k})`; };
+  addEventListener('resize', fit); fit();
+  const t0 = performance.now();
+  const loop = () => { draw((performance.now() - t0) / 1000); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>

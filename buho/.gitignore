@@ -1,0 +1,4 @@
+node_modules/
+out/frame-*.png
+out/*.gif
+out/buho.mp4
