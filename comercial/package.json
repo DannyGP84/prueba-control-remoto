@@ -1,0 +1,9 @@
+{
+  "name": "comercial-recepcion",
+  "private": true,
+  "type": "module",
+  "description": "Toma 2.5D de 4 s, vertical 1080x1920: el dueño en la recepción mientras suena el teléfono",
+  "scripts": { "stills": "node render.js --stills 0.3,1.2,2.0,3.3", "render": "node render.js" },
+  "dependencies": { "ffmpeg-static": "^5.2.0", "three": "0.170.0" },
+  "devDependencies": { "playwright": "1.56.1" }
+}
